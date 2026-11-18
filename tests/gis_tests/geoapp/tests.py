@@ -523,10 +523,9 @@ class GeoLookupTest(TestCase):
         - strings matching a json regex
         - bytes
 
-        Since this could be unexpected in a lookup context, disallow dicts
-        and strings: instead, explicitly wrap with GDALRaster() to signal that
-        a write or fetch is expected. Bytes only write to the in-memory virtual
-        filesystem, so allow them.
+        Since this could be unexpected in a lookup context, disallow dicts,
+        bytes, and strings: instead, explicitly wrap with GDALRaster() to
+        signal that a write or fetch is expected.
 
         Disallowing strings also disallows paths to local or in-memory
         rasters, but those didn't work in the lookup context anyway, since they
@@ -558,6 +557,8 @@ class GeoLookupTest(TestCase):
             '/vsicurl_streaming/someurl',
             '/vsis3/someurl',
             vsimem_path,
+            existing_path.read_bytes(),
+            b'POINT (invalid)',
         ]
         for obj in disallowed_cases:
             msg = (
@@ -607,12 +608,14 @@ class GeoLookupTest(TestCase):
                             # Nothing is written, however the lookup fails.
                             self.assertEqual(os.listdir(tmpdir), [])
 
-    def test_lookup_allows_writing_raster_from_bytes(self):
-        raster_path = Path(__file__).parent.parent / 'data' / 'rasters' / 'raster.tif'
-        with open(raster_path, 'rb') as raster_file:
-            raster_bytes = raster_file.read()
-        # Just get SQL to avoid gating on connection.supports_raster.
-        City.objects.filter(point__contained=raster_bytes).query
+    def test_lookup_rejected_value_repr_is_truncated(self):
+        value = b'x' * 5000
+        with self.assertRaises(DisallowedRasterLookup) as ctx:
+            State.objects.filter(poly__intersects=value)
+
+        message = str(ctx.exception)
+        self.assertIn('… <trimmed 5003 bytes string>', message)
+        self.assertNotIn('x' * 4097, message)
 
     def test_lookup_allows_geos_geometry_string(self):
         geojson = json.dumps({'type': 'Point', 'coordinates': [2, 49]})
