@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import uuid
 from ctypes import (
     addressof, byref, c_buffer, c_char_p, c_double, c_int, c_void_p, string_at,
@@ -95,7 +94,7 @@ class GDALRaster(GDALRasterBase):
             # Create a new raster in write mode.
             self._write = 1
             # Get size of buffer.
-            size = sys.getsizeof(ds_input)
+            size = len(ds_input)
             # Pass data to ctypes, keeping a reference to the ctypes object so
             # that the vsimem file remains available until the GDALRaster is
             # deleted.

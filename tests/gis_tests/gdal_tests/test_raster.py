@@ -229,6 +229,12 @@ class GDALRasterTests(SimpleTestCase):
         # The vsi buffer is None for rasters that are not vsi based.
         self.assertIsNone(self.rs.vsi_buffer)
 
+    def test_vsi_buffer_length(self):
+        with open(self.rs_path, "rb") as rst_file:
+            rst_bytes = rst_file.read()
+        vsimem = GDALRaster(rst_bytes)
+        self.assertEqual(len(vsimem.vsi_buffer), len(rst_bytes))
+
     def test_offset_size_and_shape_on_raster_creation(self):
         rast = GDALRaster({
             'datatype': 1,
