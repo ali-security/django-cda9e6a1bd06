@@ -88,8 +88,17 @@ class UpdateCacheMiddleware(MiddlewareMixin):
         if not request.COOKIES and response.cookies and has_vary_header(response, 'Cookie'):
             return response
 
-        # Don't cache a response with 'Cache-Control: private'
-        if 'private' in response.get('Cache-Control', ()):
+        # Don't cache responses when the Cache-Control header is set to
+        # private, no-cache, or no-store.
+        cache_control = response.get('Cache-Control', '').lower()
+        if cache_control and any(
+            directive in cache_control
+            for directive in (
+                'private',
+                'no-cache',
+                'no-store',
+            )
+        ):
             return response
 
         # Page timeout takes precedence over the "max-age" and the default
